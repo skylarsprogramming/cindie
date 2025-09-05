@@ -1,3 +1,41 @@
+# LinguaLift — AI English Learning Website
+
+Static site you can host on GitHub Pages. Includes:
+
+- Landing page with 3D parallax and starfield
+- 15-question placement quiz (grammar, reading, listening)
+- AI-like personalized course generator (client-side mock)
+- Games (Word Match, Sentence Builder)
+- Pronunciation improver using Web Speech API
+
+## Run locally
+
+Open `index.html` in your browser, or serve the folder with any static server.
+
+## Deploy to GitHub Pages
+
+1. Create a new GitHub repository and push this project.
+2. In GitHub, go to Settings → Pages.
+3. Set "Deploy from a branch" and choose `main` (or your default) and `/ (root)`.
+4. Save. Your site will be available at the Pages URL in ~1 minute.
+
+If you deploy to a subpath (e.g. `username.github.io/repo`), ensure links are relative (they are in this project).
+
+### Optional: Use a custom domain
+
+1. In your repo, create a file named `CNAME` at the root with your domain name.
+2. Configure your DNS to point `A` records to GitHub Pages and add a `CNAME` to your repo URL.
+3. In GitHub Pages settings, set the custom domain and enforce HTTPS.
+
+## Privacy
+
+This is 100% client-side. No data leaves your browser. Quiz results are stored in `localStorage` to generate your course.
+
+## Browser support
+
+- Pronunciation uses the Web Speech API. For best results, use Chrome-based browsers.
+- Listening items use text-to-speech so audio works offline.
+
 # Cindie - Modern Language Learning Platform
 
 A bold, edgy, and modern language learning website built with Next.js, React, and Tailwind CSS. Learn English and German through interactive courses, games, and AI-powered pronunciation practice.
