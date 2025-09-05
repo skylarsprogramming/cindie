@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI English Learning Hub</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <meta name="description" content="Learn English with AI-powered tools, interactive quizzes, games, and pronunciation training">
+    <meta name="keywords" content="English learning, AI, education, grammar, vocabulary, pronunciation, quiz">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h2>AI English Hub</h2>
+            </div>
+            <div class="nav-menu">
+                <a href="#home" class="nav-link">Home</a>
+                <a href="#quiz" class="nav-link">Assessment</a>
+                <a href="#course" class="nav-link">Courses</a>
+                <a href="#games" class="nav-link">Games</a>
+                <a href="#pronunciation" class="nav-link">Pronunciation</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section with 3D Effects -->
+    <section id="home" class="hero">
+        <div class="hero-bg">
+            <canvas id="three-canvas"></canvas>
+        </div>
+        <div class="hero-content">
+            <h1 class="hero-title">Master English with AI</h1>
+            <p class="hero-subtitle">Personalized learning powered by artificial intelligence</p>
+            <div class="hero-buttons">
+                <button class="btn-primary" onclick="startAssessment()">Take Assessment Quiz</button>
+                <button class="btn-secondary" onclick="scrollToSection('games')">Explore Games</button>
+            </div>
+        </div>
+        <div class="floating-elements">
+            <div class="floating-card" data-speed="2">
+                <div class="card-icon">📚</div>
+                <div class="card-text">Interactive Lessons</div>
+            </div>
+            <div class="floating-card" data-speed="3">
+                <div class="card-icon">🎯</div>
+                <div class="card-text">Personalized Learning</div>
+            </div>
+            <div class="floating-card" data-speed="1.5">
+                <div class="card-icon">🎮</div>
+                <div class="card-text">Fun Games</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quiz Section -->
+    <section id="quiz" class="quiz-section hidden">
+        <div class="container">
+            <div class="quiz-header">
+                <h2>English Assessment Quiz</h2>
+                <p>Answer 15 questions to get your personalized learning path</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <span class="question-counter">Question <span id="current-question">1</span> of 15</span>
+            </div>
+            <div class="quiz-content">
+                <div class="question-card" id="question-card">
+                    <div class="question-type" id="question-type">Grammar</div>
+                    <div class="question-text" id="question-text">Loading question...</div>
+                    <div class="question-media" id="question-media"></div>
+                    <div class="options" id="options"></div>
+                    <button class="btn-primary" id="next-btn" onclick="nextQuestion()" disabled>Next Question</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Course Section -->
+    <section id="course" class="course-section hidden">
+        <div class="container">
+            <div class="course-header">
+                <h2>Your Personalized Course</h2>
+                <div class="level-indicator">
+                    <span class="level-badge" id="level-badge">Beginner</span>
+                    <div class="score-display">Assessment Score: <span id="final-score">0</span>%</div>
+                </div>
+            </div>
+            <div class="course-content" id="course-content">
+                <!-- Course modules will be generated here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Games Section -->
+    <section id="games" class="games-section">
+        <div class="container">
+            <h2 class="section-title">Learning Games</h2>
+            <div class="games-grid">
+                <div class="game-card" onclick="startGame('vocabulary')">
+                    <div class="game-icon">🎯</div>
+                    <h3>Vocabulary Match</h3>
+                    <p>Match words with their meanings</p>
+                </div>
+                <div class="game-card" onclick="startGame('grammar')">
+                    <div class="game-icon">📝</div>
+                    <h3>Grammar Challenge</h3>
+                    <p>Test your grammar skills</p>
+                </div>
+                <div class="game-card" onclick="startGame('spelling')">
+                    <div class="game-icon">✏️</div>
+                    <h3>Spelling Bee</h3>
+                    <p>Improve your spelling</p>
+                </div>
+                <div class="game-card" onclick="startGame('listening')">
+                    <div class="game-icon">🎧</div>
+                    <h3>Listen & Learn</h3>
+                    <p>Audio comprehension games</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pronunciation Section -->
+    <section id="pronunciation" class="pronunciation-section">
+        <div class="container">
+            <h2 class="section-title">Pronunciation Trainer</h2>
+            <div class="pronunciation-tool">
+                <div class="word-display">
+                    <h3 id="target-word">Hello</h3>
+                    <div class="phonetic" id="phonetic">/həˈloʊ/</div>
+                    <button class="btn-secondary" onclick="playTargetAudio()">🔊 Listen</button>
+                </div>
+                <div class="recording-area">
+                    <button class="record-btn" id="record-btn" onclick="toggleRecording()">
+                        <span class="record-icon">🎤</span>
+                        <span class="record-text">Start Recording</span>
+                    </button>
+                    <div class="audio-visualizer" id="audio-visualizer"></div>
+                </div>
+                <div class="feedback-area" id="feedback-area">
+                    <div class="score-circle">
+                        <div class="score-text" id="pronunciation-score">--</div>
+                    </div>
+                    <div class="feedback-text" id="feedback-text">Click record to start practicing</div>
+                </div>
+                <div class="word-list">
+                    <h4>Practice Words:</h4>
+                    <div class="word-chips">
+                        <span class="word-chip active" onclick="selectWord('hello')">Hello</span>
+                        <span class="word-chip" onclick="selectWord('world')">World</span>
+                        <span class="word-chip" onclick="selectWord('beautiful')">Beautiful</span>
+                        <span class="word-chip" onclick="selectWord('pronunciation')">Pronunciation</span>
+                        <span class="word-chip" onclick="selectWord('communication')">Communication</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Game Modal -->
+    <div id="game-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="game-title">Game</h3>
+                <button class="close-btn" onclick="closeGame()">&times;</button>
+            </div>
+            <div class="modal-body" id="game-content">
+                <!-- Game content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
