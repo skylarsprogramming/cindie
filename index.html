@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI English Learner</title>
+    <meta name="description" content="Learn English with AI: assessment, interactive course, games, and pronunciation practice in one page." />
+    <style>
+      /* Base reset */
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+        color: #0f172a;
+        background: radial-gradient(1200px 800px at 20% 10%, #e0f2fe 0%, #f1f5f9 50%, #f8fafc 100%);
+        overflow-x: hidden;
+      }
+      a { color: inherit; text-decoration: none; }
+      button { cursor: pointer; }
+
+      /* Layout */
+      #bg-canvas {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+      }
+
+      .container {
+        width: min(1100px, 94vw);
+        margin: 0 auto;
+        padding: 24px 0 80px 0;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        backdrop-filter: blur(8px);
+        background: rgba(255,255,255,0.75);
+        border-bottom: 1px solid rgba(15,23,42,0.06);
+        z-index: 10;
+      }
+      .topbar-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 12px 0;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 800;
+        letter-spacing: 0.3px;
+      }
+      .brand-badge {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #22d3ee, #4f46e5);
+        box-shadow: 0 6px 18px rgba(79,70,229,0.35);
+      }
+      nav {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .nav-btn {
+        padding: 8px 12px;
+        background: white;
+        border: 1px solid rgba(15,23,42,0.08);
+        border-radius: 10px;
+        transition: transform 120ms ease, background 160ms ease, box-shadow 160ms ease;
+      }
+      .nav-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(15,23,42,0.08); }
+      .nav-btn.active { background: #eef2ff; border-color: #4f46e5; }
+
+      /* Sections */
+      section { display: none; }
+      section.active { display: block; }
+
+      /* Hero */
+      .hero {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 32px;
+        padding: 40px 0 24px 0;
+        align-items: center;
+      }
+      @media (max-width: 900px) {
+        .hero { grid-template-columns: 1fr; }
+      }
+      .hero-card {
+        perspective: 1000px;
+      }
+      .card-3d {
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0.6));
+        border: 1px solid rgba(15,23,42,0.08);
+        box-shadow: 0 22px 60px rgba(15,23,42,0.10);
+        padding: 28px;
+        transform-style: preserve-3d;
+        transform: rotateX(0deg) rotateY(0deg);
+        transition: transform 140ms ease;
+      }
+      .card-title {
+        font-size: clamp(28px, 4vw, 44px);
+        line-height: 1.1;
+        margin: 0 0 16px;
+      }
+      .card-subtitle {
+        font-size: clamp(15px, 2vw, 18px);
+        color: #334155;
+        margin: 0 0 24px;
+      }
+      .cta-row { display: flex; gap: 12px; flex-wrap: wrap; }
+      .btn {
+        padding: 12px 16px;
+        border-radius: 12px;
+        border: 1px solid rgba(15,23,42,0.08);
+        background: white;
+        box-shadow: 0 8px 22px rgba(15,23,42,0.06);
+        transition: transform 120ms ease, box-shadow 160ms ease, background 160ms ease;
+      }
+      .btn:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(15,23,42,0.10); }
+      .btn.primary { background: linear-gradient(135deg, #22d3ee, #4f46e5); color: white; border: none; }
+      .btn.ghost { background: transparent; }
+
+      .hero-visual {
+        height: 320px;
+        border-radius: 16px;
+        border: 1px solid rgba(15,23,42,0.08);
+        background: radial-gradient(600px 260px at 60% 30%, rgba(79,70,229,0.20), transparent),
+                    radial-gradient(600px 260px at 30% 70%, rgba(34,211,238,0.20), transparent),
+                    rgba(255,255,255,0.6);
+        position: relative;
+        overflow: hidden;
+      }
+      .orb { position: absolute; border-radius: 50%; filter: blur(10px); opacity: 0.8; }
+      .orb.one { width: 160px; height: 160px; background: #4f46e5; left: 8%; top: 22%; animation: float 7s ease-in-out infinite; }
+      .orb.two { width: 220px; height: 220px; background: #22d3ee; right: 10%; bottom: 8%; animation: float 9s ease-in-out infinite reverse; }
+      @keyframes float {
+        0%, 100% { transform: translateY(-6px); }
+        50% { transform: translateY(6px); }
+      }
+
+      /* Cards and panels */
+      .panel {
+        margin-top: 18px;
+        padding: 18px;
+        border: 1px solid rgba(15,23,42,0.08);
+        border-radius: 14px;
+        background: rgba(255,255,255,0.8);
+      }
+      .muted { color: #475569; }
+      .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+      .grid { display: grid; gap: 12px; }
+      .grid.two { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .grid.three { grid-template-columns: repeat(3, minmax(0,1fr)); }
+      @media (max-width: 800px) {
+        .grid.two, .grid.three { grid-template-columns: 1fr; }
+      }
+      .field { display: grid; gap: 4px; }
+      label { font-size: 12px; color: #334155; }
+      input[type="text"], input[type="number"], select, textarea {
+        width: 100%; padding: 10px 12px; border-radius: 10px;
+        border: 1px solid rgba(15,23,42,0.12); background: white;
+      }
+      .progress {
+        height: 10px; border-radius: 999px; background: #e2e8f0; overflow: hidden;
+      }
+      .progress > span {
+        display: block; height: 100%; width: 0%; background: linear-gradient(90deg, #22d3ee, #4f46e5);
+      }
+      .badge { display: inline-block; padding: 4px 8px; border-radius: 999px; background: #eef2ff; color: #3730a3; font-size: 12px; border: 1px solid #c7d2fe; }
+
+      /* Games */
+      .list {
+        display: grid; gap: 8px;
+      }
+      .list .item { padding: 10px 12px; border: 1px solid rgba(15,23,42,0.10); border-radius: 10px; background: white; }
+      .pairable.selected { outline: 2px solid #22d3ee; }
+
+      /* Footer */
+      footer { text-align: center; color: #64748b; padding: 40px 0; }
+    </style>
+  </head>
+  <body>
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="topbar">
+      <div class="container topbar-inner">
+        <div class="brand">
+          <div class="brand-badge"></div>
+          <div>AI English Learner</div>
+        </div>
+        <nav>
+          <button class="nav-btn" data-nav="home">Home</button>
+          <button class="nav-btn" data-nav="quiz">Assessment</button>
+          <button class="nav-btn" data-nav="course">Course</button>
+          <button class="nav-btn" data-nav="games">Games</button>
+          <button class="nav-btn" data-nav="speak">Pronunciation</button>
+          <button class="nav-btn" data-nav="settings">Settings</button>
+        </nav>
+      </div>
+    </div>
+
+    <main class="container">
+      <!-- Home / Landing -->
+      <section id="home" class="active">
+        <div class="hero">
+          <div class="hero-card">
+            <div class="card-3d" id="tilt-card">
+              <h1 class="card-title">Master English with AI</h1>
+              <p class="card-subtitle">Personalized lessons, interactive quizzes, games, and real-time pronunciation feedback — all in one lightweight page you can host anywhere.</p>
+              <div class="cta-row">
+                <button class="btn primary" data-nav="quiz">Start 15‑Question Assessment</button>
+                <button class="btn" data-nav="games">Play Word Games</button>
+                <button class="btn" data-nav="speak">Improve Pronunciation</button>
+              </div>
+              <div class="panel">
+                <div class="row">
+                  <span class="badge">3D</span>
+                  <span class="badge">Quiz</span>
+                  <span class="badge">AI Course</span>
+                  <span class="badge">Games</span>
+                  <span class="badge">Pronunciation</span>
+                </div>
+                <p class="muted" style="margin: 10px 0 0 0;">Tip: Add your API key in Settings to generate a custom course with AI. Works offline with a built‑in planner too.</p>
+              </div>
+            </div>
+          </div>
+          <div class="hero-visual" id="hero-visual">
+            <div class="orb one"></div>
+            <div class="orb two"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Assessment / Quiz -->
+      <section id="quiz">
+        <h2>Assessment</h2>
+        <p class="muted">Answer 15 questions (grammar, reading, listening). We will map your strengths and weaknesses and generate a tailored course.</p>
+        <div class="panel">
+          <div class="row" style="justify-content: space-between; align-items: center;">
+            <div class="row">
+              <span class="badge" id="quiz-type-badge">—</span>
+              <span class="muted" id="quiz-counter">0 / 15</span>
+            </div>
+            <div style="min-width: 220px; flex: 1; max-width: 520px;">
+              <div class="progress"><span id="quiz-progress" style="width:0%"></span></div>
+            </div>
+          </div>
+
+          <div id="question-area" style="margin-top: 14px;">
+            <div id="question-text" style="font-weight: 600;">Press Start to begin.</div>
+            <div id="passage" class="panel" style="display:none; margin-top:12px; background: #f8fafc;">
+              <div style="font-size: 14px; line-height: 1.6;" id="passage-text"></div>
+            </div>
+            <div id="choices" class="list" style="margin-top: 12px;"></div>
+            <div class="row" style="margin-top: 12px;">
+              <button class="btn" id="play-audio" title="Play audio for listening">Play Audio</button>
+              <button class="btn" id="skip-question">Skip</button>
+              <button class="btn primary" id="next-question">Next</button>
+            </div>
+            <div id="question-feedback" class="muted" style="margin-top: 10px;"></div>
+          </div>
+
+          <div class="row" style="margin-top: 14px;">
+            <button class="btn primary" id="start-quiz">Start Assessment</button>
+            <button class="btn" id="reset-quiz">Reset</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Course Planner -->
+      <section id="course">
+        <h2>Your Course</h2>
+        <p class="muted">After you complete the assessment, we propose a custom course. Add an API key in Settings for AI‑generated plans, or use our offline planner.</p>
+        <div class="panel">
+          <div class="grid two">
+            <div>
+              <h3 style="margin:0 0 8px 0;">Results Summary</h3>
+              <div id="results-summary" class="muted">No assessment yet. Take the assessment to begin.</div>
+              <div id="weakness-tags" style="margin-top: 10px;"></div>
+            </div>
+            <div>
+              <h3 style="margin:0 0 8px 0;">Planner</h3>
+              <div class="row">
+                <button class="btn" id="offline-plan">Create Offline Plan</button>
+                <button class="btn primary" id="ai-plan">Generate with AI</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 style="margin:0 0 8px 0;">Planned Lessons</h3>
+          <div id="plan-list" class="list"></div>
+          <div class="row" style="margin-top: 12px;">
+            <button class="btn primary" id="start-course" disabled>Start Course</button>
+          </div>
+        </div>
+        <div class="panel" id="lesson-runner" style="display:none;">
+          <h3 style="margin:0 0 8px 0;" id="lesson-title">Lesson</h3>
+          <div id="lesson-content" class="list"></div>
+          <div class="row" style="margin-top: 12px;">
+            <button class="btn" id="prev-lesson">Previous</button>
+            <button class="btn primary" id="next-lesson">Next</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Games -->
+      <section id="games">
+        <h2>Games</h2>
+        <p class="muted">Boost vocabulary and recall with quick games.</p>
+        <div class="panel">
+          <h3 style="margin:0;">Word Match</h3>
+          <p class="muted" style="margin:8px 0 12px 0;">Select a word and then its definition to form pairs.</p>
+          <div class="grid two">
+            <div id="game-words" class="list"></div>
+            <div id="game-defs" class="list"></div>
+          </div>
+          <div class="row" style="margin-top: 12px;">
+            <button class="btn" id="reset-matching">Shuffle</button>
+            <div class="muted">Score: <span id="match-score">0</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 style="margin:0;">Flashcards</h3>
+          <div id="flashcard" class="item" style="min-height: 80px; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+            Click Next to begin
+          </div>
+          <div class="row" style="margin-top: 12px;">
+            <button class="btn" id="flip-card">Flip</button>
+            <button class="btn" id="next-card">Next</button>
+            <div class="muted">Progress: <span id="flash-progress">0</span>/<span id="flash-total">0</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pronunciation -->
+      <section id="speak">
+        <h2>Pronunciation Improver</h2>
+        <p class="muted">Listen to the target phrase and speak it. We will transcribe what you said and score the similarity.</p>
+        <div class="panel">
+          <div class="grid two">
+            <div class="field">
+              <label for="phrase">Target phrase</label>
+              <input id="phrase" type="text" value="The quick brown fox jumps over the lazy dog" />
+            </div>
+            <div class="field">
+              <label for="accent">Voice (if available)</label>
+              <select id="accent"></select>
+            </div>
+          </div>
+          <div class="row" style="margin-top: 12px;">
+            <button class="btn" id="play-phrase">Play Target</button>
+            <button class="btn primary" id="record-phrase">Record & Score</button>
+          </div>
+          <div class="panel" style="margin-top: 12px; background: #f8fafc;">
+            <div class="muted">Transcribed: <span id="transcript">—</span></div>
+            <div class="muted">Score: <span id="pron-score">0</span>/100</div>
+            <div class="muted" id="pron-feedback"></div>
+          </div>
+          <div id="asr-warning" class="muted" style="margin-top: 10px; display:none;">Speech recognition is not supported in this browser. Try Chromium-based browsers.</div>
+        </div>
+      </section>
+
+      <!-- Settings -->
+      <section id="settings">
+        <h2>Settings</h2>
+        <div class="panel">
+          <div class="grid two">
+            <div class="field">
+              <label for="api-provider">Provider</label>
+              <select id="api-provider">
+                <option value="openai">OpenAI Compatible</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="api-endpoint">Endpoint</label>
+              <input id="api-endpoint" type="text" placeholder="https://api.openai.com/v1/chat/completions" />
+            </div>
+            <div class="field">
+              <label for="api-model">Model</label>
+              <input id="api-model" type="text" value="gpt-4o-mini" />
+            </div>
+            <div class="field">
+              <label for="api-key">API Key</label>
+              <input id="api-key" type="text" placeholder="sk-... (stored locally)" />
+            </div>
+          </div>
+          <div class="row" style="margin-top: 12px;">
+            <button class="btn" id="save-settings">Save</button>
+            <div class="muted">Your key is only kept in this browser via localStorage.</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>© <span id="year"></span> AI English Learner. All rights reserved.</footer>
+
+    <script>
+      // ---------- Utilities ----------
+      const $ = (sel) => document.querySelector(sel);
+      const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+      const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+      const shuffle = (arr) => arr.map(v => [Math.random(), v]).sort((a,b) => a[0]-b[0]).map(v => v[1]);
+      const delay = (ms) => new Promise(r => setTimeout(r, ms));
+
+      // Simple Levenshtein distance for pronunciation scoring
+      function levenshtein(a, b) {
+        a = a.toLowerCase(); b = b.toLowerCase();
+        const m = a.length, n = b.length;
+        const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
+        for (let i = 0; i <= m; i++) dp[i][0] = i;
+        for (let j = 0; j <= n; j++) dp[0][j] = j;
+        for (let i = 1; i <= m; i++) {
+          for (let j = 1; j <= n; j++) {
+            const cost = a[i-1] === b[j-1] ? 0 : 1;
+            dp[i][j] = Math.min(
+              dp[i-1][j] + 1,
+              dp[i][j-1] + 1,
+              dp[i-1][j-1] + cost
+            );
+          }
+        }
+        return dp[m][n];
+      }
+
+      function similarityScore(reference, hypothesis) {
+        if (!reference && !hypothesis) return 100;
+        if (!reference) return 0;
+        const dist = levenshtein(reference.trim(), hypothesis.trim());
+        const maxLen = Math.max(reference.trim().length, 1);
+        const sim = 1 - (dist / maxLen);
+        return Math.round(clamp(sim * 100, 0, 100));
+      }
+
+      // ---------- Navigation ----------
+      function setActiveSection(id) {
+        $$('section').forEach(s => s.classList.remove('active'));
+        const el = document.getElementById(id);
+        if (el) el.classList.add('active');
+        $$('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.nav === id));
+        if (id === 'home') {
+          startStarfield();
+        }
+      }
+
+      $$('.nav-btn').forEach(btn => btn.addEventListener('click', () => setActiveSection(btn.dataset.nav)));
+
+      // ---------- 3D background & tilt ----------
+      const canvas = document.getElementById('bg-canvas');
+      const ctx = canvas.getContext('2d');
+      let rafId = null;
+      let stars = [];
+      function resizeCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(innerWidth * dpr);
+        canvas.height = Math.floor(innerHeight * dpr);
+        canvas.style.width = innerWidth + 'px';
+        canvas.style.height = innerHeight + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      window.addEventListener('resize', resizeCanvas);
+
+      function initStars() {
+        const count = Math.floor((innerWidth * innerHeight) / 16000);
+        stars = Array.from({length: count}, () => ({
+          x: Math.random() * innerWidth,
+          y: Math.random() * innerHeight,
+          z: Math.random() * 1 + 0.2,
+          r: Math.random() * 1.6 + 0.4
+        }));
+      }
+
+      const mouse = {x: 0.5, y: 0.5};
+      window.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX / innerWidth;
+        mouse.y = e.clientY / innerHeight;
+        const card = document.getElementById('tilt-card');
+        if (card) {
+          const rx = (0.5 - mouse.y) * 10;
+          const ry = (mouse.x - 0.5) * 12;
+          card.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+        }
+      });
+
+      function draw() {
+        ctx.clearRect(0, 0, innerWidth, innerHeight);
+        for (const s of stars) {
+          const parallaxX = (mouse.x - 0.5) * s.z * 12;
+          const parallaxY = (mouse.y - 0.5) * s.z * 12;
+          const x = s.x + parallaxX;
+          const y = s.y + parallaxY;
+          ctx.beginPath();
+          ctx.arc(x, y, s.r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(30, 64, 175, 0.5)';
+          ctx.fill();
+        }
+        rafId = requestAnimationFrame(draw);
+      }
+
+      function startStarfield() {
+        if (rafId) cancelAnimationFrame(rafId);
+        resizeCanvas();
+        initStars();
+        draw();
+      }
+      startStarfield();
+
+      // ---------- Assessment Data ----------
+      const QUESTIONS = [
+        // Grammar (7)
+        { id: 'g1', type: 'grammar', topic: 'articles', text: 'Choose the correct article: I bought ___ umbrella and ___ apple.', choices: ['a / a', 'an / an', 'an / a', 'a / an'], answer: 3 },
+        { id: 'g2', type: 'grammar', topic: 'prepositions', text: 'Choose the correct preposition: She arrived ___ the airport ___ time.', choices: ['to / in', 'at / on', 'at / in', 'in / at'], answer: 2 },
+        { id: 'g3', type: 'grammar', topic: 'tenses', text: 'Present perfect vs past simple: I ___ (be) to Japan three times.', choices: ['was', 'have been', 'had been', 'will be'], answer: 1 },
+        { id: 'g4', type: 'grammar', topic: 'conditionals', text: 'Second conditional: If I ___ more time, I would learn Spanish.', choices: ['have', 'had', 'will have', 'would have'], answer: 1 },
+        { id: 'g5', type: 'grammar', topic: 'subject-verb', text: 'Subject-verb agreement: The data ___ convincing.', choices: ['is', 'are', 'were', 'have been'], answer: 0 },
+        { id: 'g6', type: 'grammar', topic: 'modals', text: 'Modals of deduction: He left the lights on; he ___ be home.', choices: ['must', 'might', "can't", 'should'], answer: 1 },
+        { id: 'g7', type: 'grammar', topic: 'word-order', text: 'Word order: Rarely ___ such a talented singer.', choices: ['I saw', 'saw I', 'have I seen', 'I have seen'], answer: 2 },
+        // Reading (4)
+        { id: 'r1', type: 'reading', topic: 'main-idea', passage: 'Many people assume that bigger brains are always better. However, scientists suggest that brain efficiency, not size, correlates more closely with intelligence. Neural connections and how effectively they are used matter more than sheer volume.', text: 'What is the main idea?', choices: ['Bigger brains are always better.', 'Intelligence relates to brain efficiency.', 'Neural connections do not matter.', 'Scientists measure only brain size.'], answer: 1 },
+        { id: 'r2', type: 'reading', topic: 'detail', passage: 'Honeybees communicate the location of flowers using a “waggle dance.” By vibrating and moving in specific patterns, a forager indicates direction and distance to other bees.', text: 'How do honeybees indicate distance?', choices: ['By scent only', 'By the waggle dance', 'By sound alone', 'By color changes'], answer: 1 },
+        { id: 'r3', type: 'reading', topic: 'inference', passage: 'Despite launching with little marketing, the new app attracted thousands of users. Word-of-mouth and a simple design likely fueled its early growth.', text: 'Which inference is supported?', choices: ['The app heavily advertised.', 'Users ignored the design.', 'Recommendations helped growth.', 'Growth was entirely random.'], answer: 2 },
+        { id: 'r4', type: 'reading', topic: 'vocabulary', passage: 'The teacher lauded the student’s diligence, noting her consistent attention to detail and persistence.', text: 'Closest meaning of “lauded” is…', choices: ['criticized', 'ignored', 'praised', 'doubted'], answer: 2 },
+        // Listening (4)
+        { id: 'l1', type: 'listening', topic: 'gist', audio: 'Please listen: You will hear a short sentence about travel. Choose the option that matches what you heard.', text: 'What did you hear?', tts: 'I usually take the bus to work, but today I walked.', choices: ['I usually take the bus to work, but today I walked.', 'I always walk to work, but today I took the bus.', 'I took a taxi to work yesterday.', 'I never take the bus to work.'], answer: 0 },
+        { id: 'l2', type: 'listening', topic: 'detail', audio: 'Listen to the number and select it.', text: 'Which number did you hear?', tts: 'Four hundred and sixteen.', choices: ['416', '460', '146', '614'], answer: 0 },
+        { id: 'l3', type: 'listening', topic: 'vocabulary', audio: 'Listen and choose the closest meaning.', text: 'Closest meaning of “reluctant”.', tts: 'Reluctant.', choices: ['Eager', 'Hesitant', 'Certain', 'Joyful'], answer: 1 },
+        { id: 'l4', type: 'listening', topic: 'sequence', audio: 'Listen to the instruction and select the correct order.', text: 'Choose the correct order.', tts: 'First wash your hands, then dry them with a towel.', choices: ['Dry, then wash', 'Wash, then dry', 'Dry only', 'Wash only'], answer: 1 },
+      ];
+
+      // ---------- Assessment Logic ----------
+      const quizState = {
+        order: [],
+        index: 0,
+        correct: 0,
+        answers: {},
+        topics: {},
+      };
+
+      function startQuiz() {
+        quizState.order = shuffle(QUESTIONS.slice());
+        quizState.index = 0;
+        quizState.correct = 0;
+        quizState.answers = {};
+        quizState.topics = {};
+        renderQuestion();
+      }
+
+      function resetQuiz() {
+        $('#quiz-progress').style.width = '0%';
+        $('#quiz-counter').textContent = '0 / 15';
+        $('#quiz-type-badge').textContent = '—';
+        $('#question-text').textContent = 'Press Start to begin.';
+        $('#passage').style.display = 'none';
+        $('#choices').innerHTML = '';
+        $('#question-feedback').textContent = '';
+      }
+
+      function renderQuestion() {
+        const q = quizState.order[quizState.index];
+        if (!q) return finalizeQuiz();
+        $('#quiz-type-badge').textContent = q.type.toUpperCase();
+        $('#quiz-counter').textContent = (quizState.index + 1) + ' / ' + quizState.order.length;
+        $('#quiz-progress').style.width = ((quizState.index) / quizState.order.length * 100).toFixed(1) + '%';
+
+        $('#passage').style.display = q.type === 'reading' ? 'block' : 'none';
+        if (q.type === 'reading') $('#passage-text').textContent = q.passage || '';
+        $('#question-text').textContent = q.text;
+        $('#question-feedback').textContent = '';
+        $('#choices').innerHTML = '';
+
+        q.choices.forEach((choice, idx) => {
+          const btn = document.createElement('button');
+          btn.className = 'btn';
+          btn.textContent = choice;
+          btn.addEventListener('click', () => selectChoice(idx));
+          $('#choices').appendChild(btn);
+        });
+
+        $('#play-audio').style.display = q.type === 'listening' ? 'inline-block' : 'none';
+      }
+
+      function selectChoice(idx) {
+        const q = quizState.order[quizState.index];
+        const isCorrect = idx === q.answer;
+        quizState.answers[q.id] = { idx, isCorrect, topic: q.topic, type: q.type };
+        quizState.correct += isCorrect ? 1 : 0;
+        quizState.topics[q.topic] = quizState.topics[q.topic] || { correct: 0, total: 0 };
+        quizState.topics[q.topic].total += 1;
+        quizState.topics[q.topic].correct += isCorrect ? 1 : 0;
+        $('#question-feedback').textContent = isCorrect ? 'Correct!' : `Incorrect. Correct answer: ${q.choices[q.answer]}`;
+      }
+
+      function nextQuestion() {
+        if (quizState.index < quizState.order.length - 1) {
+          quizState.index += 1;
+          renderQuestion();
+        } else {
+          finalizeQuiz();
+        }
+      }
+
+      function skipQuestion() {
+        const q = quizState.order[quizState.index];
+        if (q && !(q.id in quizState.answers)) {
+          quizState.answers[q.id] = { idx: null, isCorrect: false, topic: q.topic, type: q.type };
+          quizState.topics[q.topic] = quizState.topics[q.topic] || { correct: 0, total: 0 };
+          quizState.topics[q.topic].total += 1;
+        }
+        nextQuestion();
+      }
+
+      function finalizeQuiz() {
+        $('#quiz-progress').style.width = '100%';
+        $('#quiz-counter').textContent = quizState.order.length + ' / ' + quizState.order.length;
+        const scorePct = Math.round((quizState.correct / quizState.order.length) * 100);
+        const summary = { scorePct, correct: quizState.correct, total: quizState.order.length, topics: quizState.topics, answers: quizState.answers };
+        localStorage.setItem('ai-english-results', JSON.stringify(summary));
+        $('#question-text').textContent = `Done! Score: ${scorePct}% (${quizState.correct}/${quizState.order.length}). Go to Course to view your plan.`;
+        $('#choices').innerHTML = '';
+        $('#passage').style.display = 'none';
+        $('#question-feedback').textContent = '';
+        updateResultsSummary();
+        setActiveSection('course');
+      }
+
+      $('#start-quiz').addEventListener('click', startQuiz);
+      $('#reset-quiz').addEventListener('click', resetQuiz);
+      $('#next-question').addEventListener('click', nextQuestion);
+      $('#skip-question').addEventListener('click', skipQuestion);
+      $('#play-audio').addEventListener('click', () => {
+        const q = quizState.order[quizState.index];
+        if (!q || q.type !== 'listening') return;
+        speak(q.tts || q.text);
+      });
+
+      // ---------- Course Planner ----------
+      function updateResultsSummary() {
+        const raw = localStorage.getItem('ai-english-results');
+        if (!raw) return;
+        const r = JSON.parse(raw);
+        const div = $('#results-summary');
+        div.innerHTML = `Score: <b>${r.scorePct}%</b> (${r.correct}/${r.total})`;
+        const tags = Object.entries(r.topics)
+          .sort((a,b) => (a[1].correct/a[1].total) - (b[1].correct/b[1].total))
+          .map(([topic, t]) => ({ topic, pct: Math.round((t.correct/t.total)*100) }))
+          .slice(0, 4);
+        $('#weakness-tags').innerHTML = tags.map(t => `<span class="badge" title="${t.pct}%">${t.topic}</span>`).join(' ');
+      }
+
+      function offlinePlanFromResults(r) {
+        const weak = Object.entries(r.topics)
+          .map(([topic, t]) => ({ topic, pct: Math.round((t.correct/t.total)*100) }))
+          .sort((a,b) => a.pct - b.pct);
+        const focus = weak.slice(0, Math.min(3, weak.length)).map(w => w.topic);
+        const lessons = [];
+        focus.forEach(topic => {
+          lessons.push({
+            title: `Mastering ${topic}`,
+            steps: [
+              { kind: 'read', text: `Explanation and examples for ${topic}.` },
+              { kind: 'exercise', text: `Fill in the blanks focusing on ${topic}.`, prompt: `Complete: I ___ (have) never been there.` },
+              { kind: 'listen', text: 'Listen and repeat for pronunciation.', tts: 'Practice makes progress. Repeat after me.' },
+              { kind: 'review', text: 'Quick check with 3 questions.' },
+            ]
+          });
+        });
+        if (lessons.length === 0) {
+          lessons.push({ title: 'General English Booster', steps: [
+            { kind: 'read', text: 'Revision of key grammar points.' },
+            { kind: 'exercise', text: 'Mixed practice.' },
+            { kind: 'listen', text: 'Shadowing practice with TTS.', tts: 'Shadow this sentence: Learning English is fun and rewarding.' }
+          ]});
+        }
+        return { provider: 'offline', generatedAt: new Date().toISOString(), lessons };
+      }
+
+      async function aiPlanFromResults(r, settings) {
+        const endpoint = settings.endpoint || 'https://api.openai.com/v1/chat/completions';
+        const model = settings.model || 'gpt-4o-mini';
+        const key = settings.key || '';
+        if (!key) throw new Error('Missing API key');
+        const prompt = `You are an English teacher. Given this assessment summary, design a concise course plan of 3-5 lessons.\n\nSummary JSON: ${JSON.stringify(r)}\n\nReturn JSON with shape: { lessons: [ { title: string, steps: [ { kind: 'read'|'exercise'|'listen'|'review', text: string, prompt?: string, tts?: string } ] } ] }`;
+        const body = {
+          model,
+          messages: [
+            { role: 'system', content: 'You are a helpful, concise English teacher who outputs strictly JSON when asked.' },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.4
+        };
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${key}`
+          },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) throw new Error('API error: ' + res.status);
+        const data = await res.json();
+        const content = data.choices?.[0]?.message?.content || '{}';
+        try {
+          const obj = JSON.parse(content);
+          return { provider: 'ai', generatedAt: new Date().toISOString(), lessons: obj.lessons || [] };
+        } catch (e) {
+          // Fallback: try to extract JSON between backticks
+          const match = content.match(/\{[\s\S]*\}/);
+          if (match) {
+            try { const obj2 = JSON.parse(match[0]); return { provider: 'ai', generatedAt: new Date().toISOString(), lessons: obj2.lessons || [] }; } catch {}
+          }
+          throw new Error('Failed to parse AI response');
+        }
+      }
+
+      function renderPlan(plan) {
+        const list = $('#plan-list');
+        list.innerHTML = '';
+        plan.lessons.forEach((lesson, idx) => {
+          const div = document.createElement('div');
+          div.className = 'item';
+          div.innerHTML = `<b>${idx+1}. ${lesson.title}</b><div class="muted" style="margin-top:4px;">${lesson.steps.length} steps</div>`;
+          list.appendChild(div);
+        });
+        $('#start-course').disabled = plan.lessons.length === 0;
+      }
+
+      let currentPlan = null;
+      let currentLessonIndex = 0;
+
+      function runLesson(index) {
+        if (!currentPlan) return;
+        currentLessonIndex = clamp(index, 0, currentPlan.lessons.length - 1);
+        const lesson = currentPlan.lessons[currentLessonIndex];
+        $('#lesson-title').textContent = lesson.title;
+        const content = $('#lesson-content');
+        content.innerHTML = '';
+        lesson.steps.forEach((step, idx) => {
+          const block = document.createElement('div');
+          block.className = 'item';
+          if (step.kind === 'read') {
+            block.innerHTML = `<div><b>Read:</b> ${step.text}</div>`;
+          } else if (step.kind === 'exercise') {
+            const inputId = `exercise-${idx}`;
+            block.innerHTML = `<div style="margin-bottom:6px;"><b>Exercise:</b> ${step.text}</div><div class="row"><input type="text" id="${inputId}" placeholder="Type your answer"/><button class="btn" data-check="${inputId}">Check</button><span class="muted" id="${inputId}-fb"></span></div>`;
+          } else if (step.kind === 'listen') {
+            block.innerHTML = `<div style="margin-bottom:6px;"><b>Listen:</b> ${step.text}</div><div class="row"><button class="btn" data-tts='${(step.tts||'Listen and repeat.').replace(/'/g, "&#39;") }'>Play</button></div>`;
+          } else if (step.kind === 'review') {
+            block.innerHTML = `<div><b>Review:</b> ${step.text}</div>`;
+          }
+          $('#lesson-content').appendChild(block);
+        });
+        $('#lesson-runner').style.display = 'block';
+      }
+
+      $('#offline-plan').addEventListener('click', () => {
+        const raw = localStorage.getItem('ai-english-results');
+        if (!raw) { alert('Please take the assessment first.'); return; }
+        const r = JSON.parse(raw);
+        currentPlan = offlinePlanFromResults(r);
+        renderPlan(currentPlan);
+      });
+
+      $('#ai-plan').addEventListener('click', async () => {
+        const raw = localStorage.getItem('ai-english-results');
+        if (!raw) { alert('Please take the assessment first.'); return; }
+        const r = JSON.parse(raw);
+        const settings = {
+          endpoint: $('#api-endpoint').value.trim(),
+          model: $('#api-model').value.trim(),
+          key: $('#api-key').value.trim(),
+        };
+        try {
+          $('#ai-plan').disabled = true; $('#ai-plan').textContent = 'Generating…';
+          const plan = await aiPlanFromResults(r, settings);
+          currentPlan = plan;
+          renderPlan(currentPlan);
+        } catch (e) {
+          alert('AI generation failed: ' + e.message + '\nFalling back to offline plan.');
+          currentPlan = offlinePlanFromResults(r);
+          renderPlan(currentPlan);
+        } finally {
+          $('#ai-plan').disabled = false; $('#ai-plan').textContent = 'Generate with AI';
+        }
+      });
+
+      $('#start-course').addEventListener('click', () => runLesson(0));
+      $('#prev-lesson').addEventListener('click', () => runLesson(currentLessonIndex - 1));
+      $('#next-lesson').addEventListener('click', () => runLesson(currentLessonIndex + 1));
+
+      document.addEventListener('click', (e) => {
+        if (e.target && e.target.matches('button[data-tts]')) {
+          const text = e.target.getAttribute('data-tts');
+          speak(text);
+        }
+        if (e.target && e.target.matches('button[data-check]')) {
+          const id = e.target.getAttribute('data-check');
+          const val = (document.getElementById(id).value || '').trim();
+          const fb = document.getElementById(id + '-fb');
+          fb.textContent = val ? 'Nice! Consider alternative forms and compare to model answers.' : 'Try typing an answer first.';
+        }
+      });
+
+      // ---------- Games ----------
+      const PAIRS = [
+        ['abundant', 'more than enough; plentiful'],
+        ['concise', 'expressing much in few words'],
+        ['reluctant', 'unwilling; hesitant'],
+        ['meticulous', 'very careful and precise'],
+        ['plausible', 'seeming reasonable or probable'],
+        ['vivid', 'producing powerful feelings or strong images']
+      ];
+
+      let selectedWord = null;
+      let selectedDef = null;
+      let matchScore = 0;
+
+      function renderMatching() {
+        matchScore = 0; $('#match-score').textContent = '0';
+        const words = shuffle(PAIRS.map(p => p[0]));
+        const defs = shuffle(PAIRS.map(p => p[1]));
+        const wList = $('#game-words'); const dList = $('#game-defs');
+        wList.innerHTML = ''; dList.innerHTML = '';
+        words.forEach(w => {
+          const div = document.createElement('div'); div.className = 'item pairable'; div.textContent = w; div.dataset.word = w;
+          div.addEventListener('click', () => { selectPair('word', div); });
+          wList.appendChild(div);
+        });
+        defs.forEach(d => {
+          const div = document.createElement('div'); div.className = 'item pairable'; div.textContent = d; div.dataset.def = d;
+          div.addEventListener('click', () => { selectPair('def', div); });
+          dList.appendChild(div);
+        });
+      }
+
+      function selectPair(kind, el) {
+        if (kind === 'word') {
+          $$('#game-words .pairable').forEach(x => x.classList.remove('selected'));
+          el.classList.add('selected'); selectedWord = el.dataset.word;
+        } else {
+          $$('#game-defs .pairable').forEach(x => x.classList.remove('selected'));
+          el.classList.add('selected'); selectedDef = el.dataset.def;
+        }
+        if (selectedWord && selectedDef) {
+          const correct = PAIRS.some(([w, d]) => w === selectedWord && d === selectedDef);
+          if (correct) {
+            matchScore += 1; $('#match-score').textContent = String(matchScore);
+            // remove matched
+            const wEl = $(`#game-words .pairable[data-word="${CSS.escape(selectedWord)}"]`);
+            const dEl = $(`#game-defs .pairable[data-def="${CSS.escape(selectedDef)}"]`);
+            wEl.style.opacity = '0.4'; wEl.style.pointerEvents = 'none';
+            dEl.style.opacity = '0.4'; dEl.style.pointerEvents = 'none';
+          }
+          selectedWord = null; selectedDef = null;
+          $$('#game-words .pairable').forEach(x => x.classList.remove('selected'));
+          $$('#game-defs .pairable').forEach(x => x.classList.remove('selected'));
+        }
+      }
+
+      $('#reset-matching').addEventListener('click', renderMatching);
+
+      // Flashcards
+      const FLASH = shuffle(PAIRS.slice());
+      let flashIdx = -1; let showingBack = false;
+      function updateFlashcard() {
+        const card = $('#flashcard');
+        if (flashIdx < 0 || flashIdx >= FLASH.length) { card.textContent = 'Done!'; return; }
+        const [w, d] = FLASH[flashIdx];
+        card.textContent = showingBack ? d : w;
+        $('#flash-progress').textContent = String(flashIdx + 1);
+        $('#flash-total').textContent = String(FLASH.length);
+      }
+      $('#flip-card').addEventListener('click', () => { showingBack = !showingBack; updateFlashcard(); });
+      $('#next-card').addEventListener('click', () => { flashIdx = clamp(flashIdx + 1, 0, FLASH.length); showingBack = false; updateFlashcard(); });
+
+      // ---------- Pronunciation ----------
+      function populateVoices() {
+        const voices = speechSynthesis.getVoices();
+        const sel = $('#accent'); sel.innerHTML = '';
+        voices.forEach(v => {
+          const opt = document.createElement('option');
+          opt.value = v.name; opt.textContent = v.name + (v.lang ? ` (${v.lang})` : ''); sel.appendChild(opt);
+        });
+      }
+      if ('speechSynthesis' in window) {
+        populateVoices();
+        window.speechSynthesis.onvoiceschanged = populateVoices;
+      }
+
+      function speak(text) {
+        if (!('speechSynthesis' in window)) { alert('Speech synthesis not supported'); return; }
+        const utter = new SpeechSynthesisUtterance(text);
+        const chosen = $('#accent').value;
+        if (chosen) {
+          const v = speechSynthesis.getVoices().find(x => x.name === chosen);
+          if (v) utter.voice = v;
+        }
+        speechSynthesis.cancel();
+        speechSynthesis.speak(utter);
+      }
+
+      $('#play-phrase').addEventListener('click', () => speak($('#phrase').value));
+
+      const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!Recognition) { $('#asr-warning').style.display = 'block'; }
+
+      $('#record-phrase').addEventListener('click', () => {
+        if (!Recognition) { alert('Speech recognition not supported in this browser'); return; }
+        const recognizer = new Recognition();
+        recognizer.lang = 'en-US';
+        recognizer.interimResults = false;
+        recognizer.maxAlternatives = 1;
+        $('#record-phrase').disabled = true; $('#record-phrase').textContent = 'Listening…';
+        recognizer.onresult = (e) => {
+          const hyp = e.results[0][0].transcript || '';
+          $('#transcript').textContent = hyp;
+          const ref = $('#phrase').value || '';
+          const score = similarityScore(ref, hyp);
+          $('#pron-score').textContent = String(score);
+          $('#pron-feedback').textContent = score > 80 ? 'Excellent! Very close to the target.' : score > 60 ? 'Good. Focus on stress and rhythm.' : 'Keep practicing. Break the phrase into chunks and repeat.';
+          $('#record-phrase').disabled = false; $('#record-phrase').textContent = 'Record & Score';
+        };
+        recognizer.onerror = () => { $('#record-phrase').disabled = false; $('#record-phrase').textContent = 'Record & Score'; };
+        recognizer.onend = () => { $('#record-phrase').disabled = false; $('#record-phrase').textContent = 'Record & Score'; };
+        recognizer.start();
+      });
+
+      // ---------- Settings ----------
+      function loadSettings() {
+        const s = JSON.parse(localStorage.getItem('ai-english-settings') || '{}');
+        if (s.endpoint) $('#api-endpoint').value = s.endpoint;
+        if (s.model) $('#api-model').value = s.model;
+        if (s.key) $('#api-key').value = s.key;
+      }
+      function saveSettings() {
+        const s = {
+          endpoint: $('#api-endpoint').value.trim() || 'https://api.openai.com/v1/chat/completions',
+          model: $('#api-model').value.trim() || 'gpt-4o-mini',
+          key: $('#api-key').value.trim() || ''
+        };
+        localStorage.setItem('ai-english-settings', JSON.stringify(s));
+        alert('Saved. Your key is stored only in this browser.');
+      }
+      $('#save-settings').addEventListener('click', saveSettings);
+      loadSettings();
+
+      // ---------- Init ----------
+      $('#year').textContent = new Date().getFullYear();
+      renderMatching();
+      updateFlashcard();
+      updateResultsSummary();
+
+      // Enable nav via CTA buttons inside content
+      document.addEventListener('click', (e) => {
+        const el = e.target.closest('[data-nav]');
+        if (el && el.dataset.nav) setActiveSection(el.dataset.nav);
+      });
+    </script>
+  </body>
+</html>
+
