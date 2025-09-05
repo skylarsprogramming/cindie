@@ -1,0 +1,35 @@
+title: AI English Learning Hub
+description: Learn English with AI-powered tools, interactive quizzes, games, and pronunciation training
+theme: minima
+
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-seo-tag
+
+# GitHub Pages settings
+url: "https://yourusername.github.io"
+baseurl: "/ai-english-learning-hub"
+
+# SEO settings
+lang: en_US
+author: AI English Learning Hub Team
+
+# Social links
+github_username: yourusername
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+permalink: pretty
+
+# Exclude files from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
+  - README.md
