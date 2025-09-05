@@ -295,7 +295,14 @@
           </div>
         </div>
         <div class="panel">
-          <h3 style="margin:0 0 8px 0;">Planned Lessons</h3>
+          <div class="row" style="justify-content: space-between; align-items: baseline;">
+            <h3 style="margin:0 0 8px 0;">Planned Lessons</h3>
+            <div class="row">
+              <input id="json-file" type="file" accept="application/json" style="display:none;" />
+              <button class="btn" id="import-json">Import JSON</button>
+              <button class="btn" id="export-json">Export JSON</button>
+            </div>
+          </div>
           <div id="plan-list" class="list"></div>
           <div class="row" style="margin-top: 12px;">
             <button class="btn primary" id="start-course" disabled>Start Course</button>
@@ -686,7 +693,7 @@
         const model = settings.model || 'gpt-4o-mini';
         const key = settings.key || '';
         if (!key) throw new Error('Missing API key');
-        const prompt = `You are an English teacher. Given this assessment summary, design a concise course plan of 3-5 lessons.\n\nSummary JSON: ${JSON.stringify(r)}\n\nReturn JSON with shape: { lessons: [ { title: string, steps: [ { kind: 'read'|'exercise'|'listen'|'review', text: string, prompt?: string, tts?: string } ] } ] }`;
+        const prompt = `You are an English teacher. Given the assessment summary, output a SINGLE JSON object that matches this exact schema per lesson:\n\n{\n  "title": string,\n  "content": [ { "text": string[], "pronunciation_help": boolean } ],\n  "questions": [ { "type": "multiple_choice", "question": string, "options": string[], "ai_assistant_explanation": true } ],\n  "vocabulary": string[]\n}\n\nCreate 3 lessons. Wrap them as { "lessons": [<lesson>, <lesson>, ...] } with no extra text. Base topics on weaknesses in this summary: ${JSON.stringify(r)}.`;
         const body = {
           model,
           messages: [
@@ -725,7 +732,10 @@
         plan.lessons.forEach((lesson, idx) => {
           const div = document.createElement('div');
           div.className = 'item';
-          div.innerHTML = `<b>${idx+1}. ${lesson.title}</b><div class="muted" style="margin-top:4px;">${lesson.steps.length} steps</div>`;
+          const qCount = Array.isArray(lesson.questions) ? lesson.questions.length : 0;
+          const pCount = Array.isArray(lesson.content) ? lesson.content.reduce((n, c) => n + (Array.isArray(c.text) ? c.text.length : 0), 0) : 0;
+          const vCount = Array.isArray(lesson.vocabulary) ? lesson.vocabulary.length : 0;
+          div.innerHTML = `<b>${idx+1}. ${lesson.title || 'Untitled'}</b><div class=\"muted\" style=\"margin-top:4px;\">${pCount} paragraphs • ${qCount} questions • ${vCount} vocab</div>`;
           list.appendChild(div);
         });
         $('#start-course').disabled = plan.lessons.length === 0;
@@ -738,24 +748,62 @@
         if (!currentPlan) return;
         currentLessonIndex = clamp(index, 0, currentPlan.lessons.length - 1);
         const lesson = currentPlan.lessons[currentLessonIndex];
-        $('#lesson-title').textContent = lesson.title;
+        $('#lesson-title').textContent = lesson.title || 'Lesson';
         const content = $('#lesson-content');
         content.innerHTML = '';
-        lesson.steps.forEach((step, idx) => {
-          const block = document.createElement('div');
-          block.className = 'item';
-          if (step.kind === 'read') {
-            block.innerHTML = `<div><b>Read:</b> ${step.text}</div>`;
-          } else if (step.kind === 'exercise') {
-            const inputId = `exercise-${idx}`;
-            block.innerHTML = `<div style="margin-bottom:6px;"><b>Exercise:</b> ${step.text}</div><div class="row"><input type="text" id="${inputId}" placeholder="Type your answer"/><button class="btn" data-check="${inputId}">Check</button><span class="muted" id="${inputId}-fb"></span></div>`;
-          } else if (step.kind === 'listen') {
-            block.innerHTML = `<div style="margin-bottom:6px;"><b>Listen:</b> ${step.text}</div><div class="row"><button class="btn" data-tts='${(step.tts||'Listen and repeat.').replace(/'/g, "&#39;") }'>Play</button></div>`;
-          } else if (step.kind === 'review') {
-            block.innerHTML = `<div><b>Review:</b> ${step.text}</div>`;
+
+        // Content paragraphs with optional TTS
+        const contentBlocks = Array.isArray(lesson.content) ? lesson.content : [];
+        contentBlocks.forEach((block, bIdx) => {
+          const texts = Array.isArray(block.text) ? block.text : [];
+          const wrap = document.createElement('div');
+          wrap.className = 'item';
+          wrap.innerHTML = `<div style=\"margin-bottom:6px;\"><b>Reading:</b></div>` +
+            texts.map(t => `<p style=\"margin:6px 0;\">${t}</p>`).join('');
+          if (block.pronunciation_help) {
+            const btn = document.createElement('button');
+            btn.className = 'btn';
+            btn.textContent = 'Play Paragraphs';
+            btn.addEventListener('click', () => speak(texts.join(' ')));
+            const row = document.createElement('div'); row.className = 'row'; row.appendChild(btn); wrap.appendChild(row);
           }
-          $('#lesson-content').appendChild(block);
+          content.appendChild(wrap);
         });
+
+        // Multiple-choice questions
+        const questions = Array.isArray(lesson.questions) ? lesson.questions : [];
+        questions.forEach((q, qIdx) => {
+          if (q.type !== 'multiple_choice') return;
+          const card = document.createElement('div'); card.className = 'item';
+          const qId = `q-${qIdx}`;
+          card.innerHTML = `<div style=\"margin-bottom:6px;\"><b>Question ${qIdx + 1}:</b> ${q.question}</div>`;
+          const opts = document.createElement('div'); opts.className = 'row';
+          (q.options || []).forEach((opt, oi) => {
+            const btn = document.createElement('button'); btn.className = 'btn'; btn.textContent = opt;
+            btn.addEventListener('click', async () => {
+              if (q.ai_assistant_explanation) {
+                const exp = await getAiExplanation(lesson.title || 'Lesson', q.question, opt);
+                fb.textContent = exp || 'Consider why this option fits best.';
+              } else {
+                fb.textContent = 'Answer recorded.';
+              }
+            });
+            opts.appendChild(btn);
+          });
+          const fb = document.createElement('div'); fb.className = 'muted'; fb.id = `${qId}-fb`;
+          card.appendChild(opts); card.appendChild(fb); content.appendChild(card);
+        });
+
+        // Vocabulary
+        const vocab = Array.isArray(lesson.vocabulary) ? lesson.vocabulary : [];
+        if (vocab.length) {
+          const vCard = document.createElement('div'); vCard.className = 'item';
+          vCard.innerHTML = `<div style=\"margin-bottom:6px;\"><b>Vocabulary:</b></div>` +
+            vocab.map(w => `<span class=\"badge\" style=\"margin-right:6px;\">${w}</span>`).join(' ');
+          const row = document.createElement('div'); row.className = 'row';
+          const btn = document.createElement('button'); btn.className = 'btn'; btn.textContent = 'Play Words'; btn.addEventListener('click', () => speak(vocab.join(', ')));
+          row.appendChild(btn); vCard.appendChild(row); content.appendChild(vCard);
+        }
         $('#lesson-runner').style.display = 'block';
       }
 
@@ -763,7 +811,17 @@
         const raw = localStorage.getItem('ai-english-results');
         if (!raw) { alert('Please take the assessment first.'); return; }
         const r = JSON.parse(raw);
-        currentPlan = offlinePlanFromResults(r);
+        // Create a sample lesson using the required JSON schema
+        const sampleLesson = {
+          title: 'Your Lesson Title Here',
+          content: [ { text: ['stories, text, paragraphs, news', 'stories, text, paragraphs, news', 'stories, text, paragraphs, news'], pronunciation_help: true } ],
+          questions: [
+            { type: 'multiple_choice', question: 'Multiple choice question here', options: ['answer1', 'answer2', 'answer3', 'answer4'], ai_assistant_explanation: true },
+            { type: 'multiple_choice', question: 'Another multiple choice question here', options: ['answer1', 'answer2', 'answer3', 'answer4'], ai_assistant_explanation: true }
+          ],
+          vocabulary: ['new vocab 1', 'new vocab 2', 'new vocab 3', 'new vocab 4']
+        };
+        currentPlan = { provider: 'offline', generatedAt: new Date().toISOString(), lessons: [sampleLesson] };
         renderPlan(currentPlan);
       });
 
@@ -793,6 +851,62 @@
       $('#start-course').addEventListener('click', () => runLesson(0));
       $('#prev-lesson').addEventListener('click', () => runLesson(currentLessonIndex - 1));
       $('#next-lesson').addEventListener('click', () => runLesson(currentLessonIndex + 1));
+
+      // Import/Export JSON
+      $('#import-json').addEventListener('click', () => $('#json-file').click());
+      $('#json-file').addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const obj = JSON.parse(text);
+          if (Array.isArray(obj.lessons)) {
+            currentPlan = { provider: 'import', generatedAt: new Date().toISOString(), lessons: obj.lessons };
+          } else if (obj.title) {
+            currentPlan = { provider: 'import', generatedAt: new Date().toISOString(), lessons: [obj] };
+          } else {
+            alert('Invalid JSON format. Provide an object with lessons[] or a single lesson object.');
+            return;
+          }
+          renderPlan(currentPlan);
+        } catch (err) {
+          alert('Failed to import JSON: ' + err.message);
+        } finally {
+          e.target.value = '';
+        }
+      });
+      $('#export-json').addEventListener('click', () => {
+        if (!currentPlan) { alert('No plan to export.'); return; }
+        const data = { lessons: currentPlan.lessons };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'course.json'; a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      async function getAiExplanation(lessonTitle, question, chosen) {
+        try {
+          const settings = {
+            endpoint: $('#api-endpoint').value.trim(),
+            model: $('#api-model').value.trim(),
+            key: $('#api-key').value.trim(),
+          };
+          if (!settings.key) return '';
+          const endpoint = settings.endpoint || 'https://api.openai.com/v1/chat/completions';
+          const body = {
+            model: settings.model || 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: 'You explain English answers briefly in 1-2 sentences.' },
+              { role: 'user', content: `Lesson: ${lessonTitle}\nQuestion: ${question}\nChosen answer: ${chosen}\nExplain why this is correct or not, briefly.` }
+            ],
+            temperature: 0.2
+          };
+          const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${settings.key}` }, body: JSON.stringify(body) });
+          if (!res.ok) return '';
+          const data = await res.json();
+          return data.choices?.[0]?.message?.content?.trim() || '';
+        } catch { return ''; }
+      }
 
       document.addEventListener('click', (e) => {
         if (e.target && e.target.matches('button[data-tts]')) {
