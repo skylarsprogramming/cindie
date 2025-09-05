@@ -50,109 +50,87 @@
 
   function startActivity(mod) {
     activityEl.style.display = 'block';
-    if (mod.area === 'grammar') {
-      renderFillBlank();
-    } else if (mod.area === 'reading') {
-      renderReading();
-    } else if (mod.area === 'listening') {
-      renderDictation();
-    } else {
-      renderSpeaking();
+    const { lesson, meta } = window.AI.generateLesson(result, mod.area, plan.level, mod.topic);
+    renderLesson(lesson, meta);
+  }
+
+  function renderLesson(lesson, meta) {
+    activityEl.innerHTML = '';
+
+    // Header with title and download link
+    const header = document.createElement('div');
+    header.className = 'card2';
+    header.innerHTML = `<div style="font-weight:800">${lesson.title}</div>`;
+    const blob = new Blob([JSON.stringify(lesson, null, 2)], { type: 'application/json' });
+    const dl = document.createElement('a');
+    dl.href = URL.createObjectURL(blob);
+    dl.download = 'lesson.json';
+    dl.textContent = 'Download lesson.json';
+    dl.style.display = 'inline-block';
+    dl.style.marginTop = '6px';
+    header.appendChild(dl);
+    activityEl.appendChild(header);
+
+    // Content paragraphs
+    const content = lesson.content && lesson.content[0];
+    if (content) {
+      const c = document.createElement('div');
+      c.className = 'card2';
+      c.innerHTML = content.text.map(t => `<p>${t}</p>`).join('') + (content.pronunciation_help ? '<div class="muted">Tip: Click a paragraph to hear it.</div>' : '');
+      activityEl.appendChild(c);
+      if (content.pronunciation_help) {
+        c.querySelectorAll('p').forEach(p => p.addEventListener('click', () => window.AI.ttsSpeak(p.textContent)));
+      }
     }
-  }
 
-  function renderFillBlank() {
-    const sentences = [
-      { s: 'She __ to the gym on Mondays.', a: 'goes' },
-      { s: 'I __ coffee every morning.', a: 'drink' },
-      { s: 'They __ dinner now.', a: 'are having' },
-    ];
-    const item = sentences[Math.floor(Math.random() * sentences.length)];
-    activityEl.innerHTML = `
-      <h3>Fill in the blank</h3>
-      <p class="muted">Type the missing word or words.</p>
-      <div class="card2">
-        <div style="font-size:18px;margin-bottom:8px">${item.s.replace('__', '<input id="fb" placeholder="..." style="padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text)" />')}</div>
-        <button class="btn primary" id="check">Check</button>
-        <div id="result" style="margin-top:8px"></div>
-      </div>
-    `;
-    activityEl.querySelector('#check').addEventListener('click', () => {
-      const val = String(activityEl.querySelector('#fb').value).trim().toLowerCase();
-      const ok = val === item.a;
-      activityEl.querySelector('#result').textContent = ok ? '✅ Correct!' : `❌ Try again. Answer: ${item.a}`;
-    });
-  }
-
-  function renderReading() {
-    const text = 'Maria lives in a small town near the sea. Every morning, she walks to the market to buy fresh bread and fruit. She likes talking to the friendly baker and watching the boats in the harbor.';
-    const qs = [
-      { q: 'Where does Maria live?', options: ['In a big city', 'Near the sea', 'In the mountains'], a: 1 },
-      { q: 'What does she buy?', options: ['Bread and fruit', 'Fish and meat', 'Clothes'], a: 0 },
-    ];
-    activityEl.innerHTML = `
-      <h3>Reading comprehension</h3>
-      <div class="card2" style="margin-bottom:8px">${text}</div>
-      <div id="rc"></div>
-    `;
-    const rc = document.getElementById('rc');
-    qs.forEach((it, idx) => {
+    // Questions
+    const qwrap = document.createElement('div');
+    qwrap.id = 'qwrap';
+    activityEl.appendChild(qwrap);
+    lesson.questions.forEach((q, idx) => {
       const d = document.createElement('div');
       d.className = 'card2';
       d.style.marginTop = '8px';
       d.innerHTML = `
-        <div style="font-weight:600">${idx + 1}. ${it.q}</div>
-        ${it.options.map((o, i) => `<label style="display:block;margin-top:6px"><input type="radio" name="r${idx}" value="${i}" style="margin-right:6px"/>${o}</label>`).join('')}
+        <div style="font-weight:600">${idx + 1}. ${q.question}</div>
+        ${q.options.map((o, i) => `<label style=\"display:block;margin-top:6px\"><input type=\"radio\" name=\"q${idx}\" value=\"${i}\" style=\"margin-right:6px\"/>${o}</label>`).join('')}
+        <div class="muted" id="exp${idx}" style="display:none;margin-top:6px"></div>
       `;
-      rc.appendChild(d);
+      qwrap.appendChild(d);
     });
     const submit = document.createElement('button');
     submit.className = 'btn primary';
-    submit.textContent = 'Submit';
+    submit.textContent = 'Check answers';
     submit.style.marginTop = '10px';
-    rc.appendChild(submit);
+    activityEl.appendChild(submit);
     const out = document.createElement('div');
-    out.id = 'out';
+    out.className = 'muted';
     out.style.marginTop = '8px';
-    rc.appendChild(out);
+    activityEl.appendChild(out);
     submit.addEventListener('click', () => {
       let score = 0;
-      qs.forEach((it, idx) => {
-        const sel = rc.querySelector(`input[name="r${idx}"]:checked`);
-        if (sel && Number(sel.value) === it.a) score++;
+      lesson.questions.forEach((q, idx) => {
+        const sel = activityEl.querySelector(`input[name=\"q${idx}\"]:checked`);
+        const correct = meta.answers[idx];
+        const exp = meta.explanations[idx];
+        const expEl = activityEl.querySelector(`#exp${idx}`);
+        if (sel && Number(sel.value) === correct) score++;
+        if (q.ai_assistant_explanation) {
+          expEl.style.display = 'block';
+          expEl.textContent = 'Explanation: ' + exp;
+        }
       });
-      out.textContent = `You got ${score}/${qs.length}.`;
+      out.textContent = `You scored ${score}/${lesson.questions.length}.`;
     });
-  }
 
-  function renderDictation() {
-    const sentence = 'The conference starts at nine tomorrow.';
-    activityEl.innerHTML = `
-      <h3>Dictation</h3>
-      <p class="muted">Listen and type what you hear.</p>
-      <div class="card2">
-        <button class="btn ghost" id="play">Play</button>
-        <input id="dict" placeholder="Type here" style="margin-left:8px;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text);width:70%" />
-        <button class="btn primary" id="check">Check</button>
-        <div id="out" style="margin-top:8px"></div>
-      </div>
-    `;
-    activityEl.querySelector('#play').addEventListener('click', () => {
-      window.AI.ttsSpeak(sentence);
-    });
-    activityEl.querySelector('#check').addEventListener('click', () => {
-      const val = String(activityEl.querySelector('#dict').value).trim().toLowerCase();
-      const ok = val === sentence.toLowerCase();
-      activityEl.querySelector('#out').textContent = ok ? '✅ Perfect!' : `❌ Not quite. Answer: ${sentence}`;
-    });
-  }
-
-  function renderSpeaking() {
-    activityEl.innerHTML = `
-      <h3>Speaking practice</h3>
-      <p class="muted">Open the Pronunciation page to record and get feedback.</p>
-      <a class="btn primary" href="./pronunciation.html">Go to Pronunciation</a>
-    `;
+    // Vocabulary
+    if (lesson.vocabulary && lesson.vocabulary.length) {
+      const v = document.createElement('div');
+      v.className = 'card2';
+      v.style.marginTop = '12px';
+      v.innerHTML = `<div style=\"font-weight:600\">Vocabulary</div>${lesson.vocabulary.map(x => `<span class=\"activity\">${x}</span>`).join(' ')}`;
+      activityEl.appendChild(v);
+    }
   }
 })();
 
