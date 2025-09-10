@@ -1,4 +1,4 @@
-# LinguaLift — AI English Learning Website
+# Cindie — AI English Learning Website
 
 Static site you can host on GitHub Pages. Includes:
 
@@ -23,8 +23,8 @@ If you deploy to a subpath (e.g. `username.github.io/repo`), ensure links are re
 
 ### Optional: Use a custom domain
 
-1. In your repo, create a file named `CNAME` at the root with your domain name.
-2. Configure your DNS to point `A` records to GitHub Pages and add a `CNAME` to your repo URL.
+1. In your repo, create a file named `Cindie` at the root with your domain name.
+2. Configure your DNS to point `A` records to GitHub Pages and add a `Cindie` to your repo URL.
 3. In GitHub Pages settings, set the custom domain and enforce HTTPS.
 
 ## Privacy
@@ -224,3 +224,4 @@ For questions or support, please open an issue in the repository.
 ---
 
 **Happy Learning! 🎓✨**
+
