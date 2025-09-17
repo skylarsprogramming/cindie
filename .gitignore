@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+server/node_modules/
+
+# Build outputs
+.next/
+.next/cache/
+out/
+dist/
+build/
+.vercel/
+.turbo/
+coverage/
+.eslintcache
+.cache/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+server/logs/
+*.log
+*.log.*
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# TypeScript
+*.tsbuildinfo
+
+# Misc
+*.tgz
