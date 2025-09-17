@@ -1,39 +1,179 @@
 (function () {
-  const QUESTIONS = [
-    // Grammar (1-5)
-    { id: 'g1', type: 'grammar', q: 'Choose the correct form: She ____ to school every day.', options: ['go', 'goes', 'is go'], a: 1 },
-    { id: 'g2', type: 'grammar', q: 'Select the correct article: I bought ____ umbrella.', options: ['a', 'an', 'the'], a: 1 },
-    { id: 'g3', type: 'grammar', q: 'Pick the correct tense: They ____ dinner when I called.', options: ['were having', 'are having', 'have'], a: 0 },
-    { id: 'g4', type: 'grammar', q: 'Which is correct?', options: ['He don\'t like tea.', 'He doesn\'t like tea.', 'He not like tea.'], a: 1 },
-    { id: 'g5', type: 'grammar', q: 'Choose the modal: You ____ see a doctor.', options: ['should', 'can to', 'must to'], a: 0 },
-    // Reading (6-10)
-    { id: 'r1', type: 'reading', q: 'Reading: "Tom works from 9 to 5." When does Tom finish?', options: ['At 9', 'At 5', 'At 3'], a: 1 },
-    { id: 'r2', type: 'reading', q: 'Reading: "The museum is closed on Mondays." Which day is closed?', options: ['Monday', 'Wednesday', 'Sunday'], a: 0 },
-    { id: 'r3', type: 'reading', q: 'Reading: "Sarah rarely eats meat." How often?', options: ['Often', 'Rarely', 'Always'], a: 1 },
-    { id: 'r4', type: 'reading', q: 'Reading: "We prefer trains because they are faster." Why trains?', options: ['Cheaper', 'Faster', 'Quieter'], a: 1 },
-    { id: 'r5', type: 'reading', q: 'Reading: "Bring your ID to enter." What do you need?', options: ['Ticket', 'ID', 'Cash'], a: 1 },
-    // Listening (11-15) using TTS prompt
-    { id: 'l1', type: 'listening', q: 'Listen: "What time is the meeting? 2 PM." Select the answer.', options: ['2 PM', '10 AM', '4 PM'], a: 0, tts: 'What time is the meeting? Two PM.' },
-    { id: 'l2', type: 'listening', q: 'Listen: "Please call me tomorrow morning." What should you do?', options: ['Email tonight', 'Call tomorrow morning', 'Visit now'], a: 1, tts: 'Please call me tomorrow morning.' },
-    { id: 'l3', type: 'listening', q: 'Listen: "Turn left at the bank and go straight." Which direction first?', options: ['Right', 'Left', 'Back'], a: 1, tts: 'Turn left at the bank and go straight.' },
-    { id: 'l4', type: 'listening', q: 'Listen: "I\'m allergic to peanuts." What can\'t they eat?', options: ['Peanuts', 'Chocolate', 'Milk'], a: 0, tts: "I'm allergic to peanuts." },
-    { id: 'l5', type: 'listening', q: 'Listen: "The train is delayed by 15 minutes." What happened?', options: ['Arrived early', 'On time', 'Delayed'], a: 2, tts: 'The train is delayed by fifteen minutes.' },
-  ];
+  // Adaptive, AI-assisted placement test with 15-minute cap
+  const MAX_TIME_MS = 15 * 60 * 1000;
+  const MAX_QUESTIONS = 20; // safety cap
+  const SKILLS = ['grammar', 'reading', 'listening'];
 
-  let index = 0;
-  const answers = [];
+  // Question banks per difficulty (1-easy .. 5-hard)
+  const BANK = {
+    grammar: {
+      1: [
+        { id: 'g1', q: 'Choose the correct form: She ____ to school every day.', options: ['go', 'goes', 'is go'], a: 1 },
+        { id: 'g2', q: 'Select the correct article: I bought ____ umbrella.', options: ['a', 'an', 'the'], a: 1 },
+      ],
+      2: [
+        { id: 'g3', q: 'Pick the correct tense: They ____ dinner when I called.', options: ['were having', 'are having', 'have'], a: 0 },
+        { id: 'g4', q: 'Which is correct?', options: ["He don't like tea.", "He doesn't like tea.", 'He not like tea.'], a: 1 },
+      ],
+      3: [
+        { id: 'g5', q: 'Choose the modal: You ____ see a doctor.', options: ['should', 'can to', 'must to'], a: 0 },
+        { id: 'g6', q: 'Identify the error: He suggested to go.', options: ['Correct', 'Use: going', 'Use: go'], a: 1 },
+      ],
+      4: [
+        { id: 'g7', q: 'Choose the best option: If I ____ more time, I would travel.', options: ['have', 'had', 'would have'], a: 1 },
+        { id: 'g8', q: 'Pick the correct sentence.', options: ['Hardly I had arrived when it started to rain.', 'Hardly had I arrived when it started to rain.', 'I had hardly arrived when it starts to rain.'], a: 1 },
+      ],
+      5: [
+        { id: 'g9', q: 'Select the correct form: It\'s high time we ____.', options: ['go', 'went', 'had gone'], a: 1 },
+        { id: 'g10', q: 'Find the best option: No sooner ____ the bus than it started raining.', options: ['I got on', 'had I got on', 'I had got on'], a: 1 },
+      ],
+    },
+    reading: {
+      1: [
+        {
+          id: 'r1',
+          paragraph: 'Tom works from 9 to 5 at a small shop near his house. He usually has lunch at 12:30.',
+          q: 'When does Tom finish work?', options: ['At 9', 'At 5', 'At 12:30'], a: 1
+        },
+      ],
+      2: [
+        {
+          id: 'r2',
+          paragraph: 'The Digital Divide. The term “digital divide” refers to the gap between individuals and communities who have access to information technology and those who do not. This disparity affects education, employment, and social participation. Bridging the divide requires affordable internet access and digital literacy programs.',
+          q: 'Which of the following is NOT mentioned as a consequence of the digital divide?', options: ['Limited educational opportunities', 'Reduced employment chances', 'Social exclusion', 'Physical health problems'], a: 3
+        },
+      ],
+      3: [
+        {
+          id: 'r3',
+          paragraph: 'Ancient Architecture. The construction of ancient monuments, such as the Pyramids of Giza, required not only remarkable engineering skills but also a sophisticated understanding of mathematics and astronomy. These structures were aligned with celestial bodies, suggesting that ancient civilizations had complex observational knowledge.',
+          q: 'The passage implies that:', options: ['Ancient civilizations had little knowledge of astronomy', 'Monument construction was purely decorative', 'AlwaAdvanced mathematics and astronomy were used in monument constructions', 'Modern engineers cannot replicate ancient monuments'], a: 2
+        },
+      ],
+      4: [
+        {
+          id: 'r4',
+          paragraph: 'Sleep and Memory. Studies have indicated that adequate sleep is crucial for memory consolidation. During certain stages of sleep, the brain processes information learned during the day, strengthening neural connections and facilitating long-term retention. Lack of sleep can significantly impair cognitive performance. ',
+          q: 'Which statement best summarizes the passage?', options: ['Memory is not affected by sleep', 'Sleep helps the brain store and strengthen information', 'Only short naps are effective for learning', 'Sleep is only important for physical health'], a: 1
+        },
+      ],
+      5: [
+        {
+          id: 'r5',
+          paragraph: 'Renewable Energy Development. Renewable energy technologies have advanced rapidly in the past decade. Wind and solar power are now more cost-effective than fossil fuels in many regions. However, challenges remain, including the intermittency of supply and the need for large-scale energy storage solutions. ',
+          q: 'The passage suggests that:', options: ['Renewable energy is cheaper than fossil fuels everywhere', 'There are still technical challenges to fully replacing fossil fuels', 'Storage of fossil fuels is more problematic than renewable energy', 'Wind power is less efficient than solar energy'], a: 1
+        },
+      ],
+    },
+    listening: {
+      1: [
+        { id: 'l1', tts: 'On Monday morning, a small meeting room will be booked for a team discussion. It will accommodate eight people. A projector will be available, and water bottles will be provided. Attendees should arrive on time. The discussion will cover project updates and planning for next month.',
+           q: 'What day is the meeting scheduled?', options: ['Sunday', 'Monday','Tuesday' 'Wednesday'], a: 1 },
+      ],
+      2: [
+        { id: 'l2', tts: 'Next Wednesday, the library will host a workshop on digital marketing. The session starts at 2 p.m. and will last two hours. Participants will learn about social media campaigns and content creation strategies. Handouts will be given at the beginning. Please register online to reserve seats?',
+           q: 'How can participants reserve seats?', options: ['By calling the library', 'By registering online', 'By attending without registration', 'By emailing the instructor'], a: 1 },
+      ],
+      3: [
+        { id: 'l3', tts: 'Tomorrow, a bakery will run a one-hour sourdough bread demonstration. Ingredients and tools will be provided.', q: 'What are attendees expected to wear?',
+           options: ['Casual clothes', 'Aprons', 'Gloves' , 'Hats'], a: 1 },
+      ],
+      4: [
+        { id: 'l4', tts: 'On Tuesday morning, a local community center will host a yoga session for beginners. Mats and water bottles will be provided.', q: 'Who is the yoga session intended for?',
+           options: ['Beginners', 'Children only', 'Seniors', 'Advanced practitioners'], a: 0 },
+      ],
+      5: [
+        { id: 'l5', tts: 'The train to Oxford is delayed by fifteen minutes due to signal problems.', q: 'What happened?', options: ['Arrived early', 'On time', 'Delayed'], a: 2 },
+      ],
+    }
+  };
+
+  let currentIndex = 0;
+  let asked = 0;
+  const usedIds = new Set();
+  const difficultyBySkill = { grammar: 2, reading: 2, listening: 2 };
   const sectionScores = { grammar: 0, reading: 0, listening: 0 };
-  const sectionMax = { grammar: 5, reading: 5, listening: 5 };
+  const sectionAttempts = { grammar: 0, reading: 0, listening: 0 };
 
   const card = document.getElementById('quiz-card');
   const bar = document.getElementById('bar');
   const pill = document.getElementById('pill');
 
-  function render() {
-    const q = QUESTIONS[index];
-    const progress = Math.round(((index) / QUESTIONS.length) * 100);
+  let startTime = Date.now();
+  let timerId = null;
+  let preferredVoice = null;
+
+  function pickVoice() {
+    try {
+      const voices = window.speechSynthesis?.getVoices?.() || [];
+      const prefer = ['Google UK English Female', 'Google US English', 'Microsoft Aria Online (Natural) - English (United States)', 'en-GB', 'en-US'];
+      for (const name of prefer) {
+        const v = voices.find(v => v.name === name || v.lang === name);
+        if (v) return v;
+      }
+      return voices[0] || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function speak(text) {
+    try {
+      if (!preferredVoice) preferredVoice = pickVoice();
+      const u = new SpeechSynthesisUtterance(text);
+      if (preferredVoice) u.voice = preferredVoice;
+      u.rate = 1.0; u.pitch = 1.0; u.lang = (preferredVoice && preferredVoice.lang) || 'en-US';
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+    } catch (_) {
+      try { window.AI && window.AI.ttsSpeak(text); } catch (_) {}
+    }
+  }
+
+  function nextSkill() {
+    const idx = asked % SKILLS.length;
+    return SKILLS[idx];
+  }
+
+  function getQuestion(skill) {
+    const level = difficultyBySkill[skill];
+    const bank = BANK[skill][level];
+    const available = bank.filter(q => !usedIds.has(q.id));
+    if (available.length === 0) {
+      // fallback: search other levels near current
+      for (let delta = 1; delta <= 4; delta++) {
+        const up = Math.min(5, level + delta);
+        const down = Math.max(1, level - delta);
+        const upBank = BANK[skill][up]?.find(q => !usedIds.has(q.id));
+        if (upBank) return { ...upBank, type: skill, level: up };
+        const downBank = BANK[skill][down]?.find(q => !usedIds.has(q.id));
+        if (downBank) return { ...downBank, type: skill, level: down };
+      }
+    }
+    const q = available[Math.floor(Math.random() * available.length)];
+    return { ...q, type: skill, level };
+  }
+
+  function renderQuestion() {
+    const skill = nextSkill();
+    const q = getQuestion(skill);
+    usedIds.add(q.id);
+
+    const totalPlanned = Math.min(MAX_QUESTIONS, SKILLS.length * 6); // ~18
+    const progress = Math.round((asked / totalPlanned) * 100);
     bar.style.width = progress + '%';
-    pill.textContent = `Question ${index + 1} / 15 • ${q.type[0].toUpperCase()}${q.type.slice(1)}`;
+    const timeLeft = Math.max(0, Math.ceil((MAX_TIME_MS - (Date.now() - startTime)) / 1000));
+    const mm = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+    const ss = String(timeLeft % 60).padStart(2, '0');
+    pill.textContent = `Question ${asked + 1} • ${skill[0].toUpperCase()}${skill.slice(1)} L${q.level} • ${mm}:${ss}`;
+
+    let bodyHtml = '';
+    if (skill === 'reading' && q.paragraph) {
+      bodyHtml += `<div class="passage" style="margin-bottom:10px;">${q.paragraph}</div>`;
+    }
+    if (skill === 'listening' && q.tts) {
+      bodyHtml += `<div class="surface" style="margin-bottom:8px"><button class="btn ghost" id="play">Play</button></div>`;
+    }
 
     const optionsHtml = q.options.map((opt, i) => `
       <label>
@@ -43,17 +183,20 @@
     `).join('');
 
     card.innerHTML = `
-      <div class="q-meta">${q.type.toUpperCase()}</div>
-      <div class="q-title">${q.q}</div>
+      <div class="q-meta">${skill.toUpperCase()}</div>
+      <div class="q-title ${skill === 'reading' ? 'reading' : ''}">${q.q}</div>
+      ${bodyHtml}
       <div class="q-options">${optionsHtml}</div>
       <div class="q-controls">
-        <button class="btn ghost" id="prev" ${index === 0 ? 'disabled' : ''}>Back</button>
-        <button class="btn primary" id="next">${index === QUESTIONS.length - 1 ? 'Finish' : 'Next'}</button>
+        <button class="btn ghost" id="prev" ${asked === 0 ? 'disabled' : ''}>Back</button>
+        <button class="btn primary" id="next">Next</button>
       </div>
     `;
 
-    if (q.type === 'listening' && q.tts) {
-      setTimeout(() => window.AI.ttsSpeak(q.tts), 200);
+    if (skill === 'listening' && q.tts) {
+      const play = document.getElementById('play');
+      play?.addEventListener('click', () => speak(q.tts));
+      setTimeout(() => speak(q.tts), 200);
     }
 
     card.querySelectorAll('label').forEach(label => {
@@ -66,9 +209,11 @@
     });
 
     card.querySelector('#prev').addEventListener('click', () => {
-      if (index > 0) {
-        index--;
-        render();
+      if (asked > 0) {
+        // Go back one question logically: reduce counters and difficulty rollback lightly
+        asked = Math.max(0, asked - 1);
+        currentIndex = Math.max(0, currentIndex - 1);
+        renderQuestion();
       }
     });
 
@@ -79,26 +224,74 @@
         return;
       }
       const choice = Number(selected.value);
-      answers[index] = choice;
-      if (choice === QUESTIONS[index].a) {
-        const area = QUESTIONS[index].type;
-        sectionScores[area] += 1;
-      }
-      if (index < QUESTIONS.length - 1) {
-        index++;
-        render();
-      } else {
-        const total = Object.values(sectionScores).reduce((a, b) => a + b, 0);
-        const max = 15;
-        const result = { answers, sectionScores, sectionMax, total, max, finishedAt: Date.now() };
-        try {
-          localStorage.setItem('lingualift_quiz_result', JSON.stringify(result));
-        } catch (_) {}
-        window.location.href = './course.html';
-      }
+      const correct = choice === q.a;
+      sectionAttempts[skill] += 1;
+      if (correct) sectionScores[skill] += 1;
+
+      // Adaptive difficulty: adjust by +/- 1
+      if (correct) difficultyBySkill[skill] = Math.min(5, difficultyBySkill[skill] + 1);
+      else difficultyBySkill[skill] = Math.max(1, difficultyBySkill[skill] - 1);
+
+      asked += 1;
+
+      const elapsed = Date.now() - startTime;
+      const reachedTime = elapsed >= MAX_TIME_MS;
+      const reachedCount = asked >= MAX_QUESTIONS;
+
+      if (reachedTime || reachedCount) return finish();
+      renderQuestion();
     });
   }
 
-  render();
+  function finish() {
+    clearInterval(timerId);
+    const totals = { grammar: sectionAttempts.grammar, reading: sectionAttempts.reading, listening: sectionAttempts.listening };
+    const max = totals.grammar + totals.reading + totals.listening;
+    const total = sectionScores.grammar + sectionScores.reading + sectionScores.listening;
+    const result = {
+      sectionScores,
+      sectionMax: { grammar: totals.grammar, reading: totals.reading, listening: totals.listening },
+      total,
+      max,
+      startedAt: startTime,
+      finishedAt: Date.now(),
+      durationMs: Date.now() - startTime,
+      difficultyBySkill,
+    };
+    try {
+      localStorage.setItem('lingualift_quiz_result', JSON.stringify(result));
+      const strengths = Object.entries(sectionScores)
+        .sort((a,b) => (b[1]||0) - (a[1]||0))
+        .map(([k]) => k);
+      const recs = [
+        { title: 'Intro to perfect tenses', id: 'course_perfect', focus: 'grammar' },
+        { title: `${(strengths[0]||'Grammar')[0].toUpperCase()}${(strengths[0]||'Grammar').slice(1)} Booster`, id: 'course_focus_1', focus: strengths[0] || 'grammar' },
+        { title: `${(strengths[1]||'Reading')[0].toUpperCase()}${(strengths[1]||'Reading').slice(1)} Practice`, id: 'course_focus_2', focus: strengths[1] || 'reading' },
+      ];
+      localStorage.setItem('cindie_recommendations', JSON.stringify(recs));
+      localStorage.setItem('cindie_quiz_completed', '1');
+      // Send to backend profile
+      fetch('http://localhost:4000/api/placement/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ result, recommendations: recs })
+      }).catch(()=>{});
+    } catch (_) {}
+    window.location.href = './dashboard.html';
+  }
+
+  function tickTimer() {
+    const timeLeft = Math.max(0, MAX_TIME_MS - (Date.now() - startTime));
+    if (timeLeft <= 0) return finish();
+    // pill updated during renderQuestion with current time; nothing else needed
+  }
+
+  // Initialize
+  if (typeof window !== 'undefined') {
+    window.speechSynthesis?.addEventListener?.('voiceschanged', () => { preferredVoice = pickVoice(); });
+  }
+  timerId = setInterval(tickTimer, 500);
+  renderQuestion();
 })();
 

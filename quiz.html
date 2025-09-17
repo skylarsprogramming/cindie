@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Placement Quiz — LinguaLift</title>
+  <title>Placement Quiz — CINDIE</title>
   <link rel="stylesheet" href="./styles.css">
   <style>
     main { padding-top: 96px; }
@@ -11,6 +11,7 @@
     .card2 { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
     .q-meta { color: var(--muted); margin-bottom: 8px; font-size: 14px; }
     .q-title { font-weight: 800; margin-bottom: 8px; font-size: 20px; }
+    .q-title.reading { font-size: 16px; font-weight: 800; color: var(--text); }
     .q-options { display: grid; gap: 8px; }
     .q-options label { display: block; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; border: 1px solid var(--border); cursor: pointer; }
     .q-controls { display: flex; justify-content: space-between; margin-top: 12px; }
@@ -18,6 +19,7 @@
     .progress { height: 8px; background: rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden; margin: 16px 0 10px; }
     .progress > span { display:block; height: 100%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); width: 0%; }
     .muted { color: var(--muted); font-size: 13px; }
+    .passage { font-size: 18px; line-height: 1.7; color: var(--text); background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
   </style>
 </head>
 <body>
@@ -25,14 +27,6 @@
     <div class="container header-inner">
       <div class="brand">
         <span class="logo">🦉</span>
-        <a href="./index.html" class="brand-name" style="text-decoration:none;color:inherit">LinguaLift</a>
-      </div>
-      <nav class="nav">
-        <a href="./course.html">My Course</a>
-        <a href="./games.html">Games</a>
-        <a href="./pronunciation.html">Pronunciation</a>
-      </nav>
-    </div>
   </header>
 
   <main class="container">
@@ -48,6 +42,7 @@
   </main>
 
   <script src="./js/ai.js"></script>
+  <script src="./js/i18n.js"></script>
   <script src="./js/quiz.js"></script>
 </body>
 </html>
