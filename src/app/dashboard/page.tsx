@@ -127,6 +127,19 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
+        <div className="flex items-center justify-end mb-4">
+          <button
+            onClick={async () => {
+              try {
+                await fetch('/api/logout', { method: 'POST' })
+                window.location.href = '/login'
+              } catch (_) {}
+            }}
+            className="px-4 py-2 rounded-lg font-medium bg-dark-200 text-gray-300 border border-gray-700 hover:text-white hover:bg-dark-100 transition-all"
+          >
+            Logout
+          </button>
+        </div>
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

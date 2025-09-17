@@ -1,3 +1,38 @@
+## Firebase auth (email + phone) with protected Express API
+
+### 1) Firebase setup
+- Create a project in Firebase Console.
+- Authentication → Sign-in method: enable Email/Password and Phone.
+- Project settings → General → Your apps (Web) → Register app and copy config into `firebase-config.js`.
+- Authentication → Settings → Authorized domains: ensure `localhost` is present. If you serve on another host/port, add that domain.
+
+Phone sign-in requires reCAPTCHA. Opening HTML files directly with `file://` will fail reCAPTCHA. Use a local web server.
+
+### 2) Run the frontend locally
+- From this folder, run one of:
+  - `npx serve -p 5173` (or)
+  - `npx http-server -p 5173` (or any static server)
+- Visit `http://localhost:5173/signup.html` to create an account, then try `login.html` and `dashboard.html`.
+
+### 3) Run the backend API
+- Get a Firebase Admin service account JSON:
+  - Firebase Console → Project settings → Service accounts → Generate new private key
+  - Save it as `server/serviceAccountKey.json` or set env var `GOOGLE_APPLICATION_CREDENTIALS` to its path.
+- Install and start the server:
+  - `cd server`
+  - `npm install`
+  - `npm run start` (starts on `http://localhost:4000`)
+
+### 4) How it works
+- Frontend uses Firebase JS SDK for signup/login.
+- `signup.html` optionally links your phone via SMS code during registration.
+- `dashboard.html` gets an ID token (`getIdToken`) and calls `http://localhost:4000/api/protected` with `Authorization: Bearer <token>`.
+- Express verifies the token with Firebase Admin and returns user data.
+
+### 5) Environment notes
+- Node 18+ recommended.
+- If SMS is not arriving, ensure the phone sign-in test numbers or proper reCAPTCHA domain settings, and avoid `file://`.
+
 # Cindie — AI English Learning Website
 
 Static site you can host on GitHub Pages. Includes:

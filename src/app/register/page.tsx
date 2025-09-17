@@ -7,8 +7,9 @@ import { Eye, EyeOff, Mail, Lock, User, ArrowRight, CheckCircle } from 'lucide-r
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    username: '',
+    phone: '',
+    age: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -34,22 +35,43 @@ export default function RegisterPage() {
       return
     }
 
+    if (formData.password.length < 8) {
+      alert('Password must be at least 8 characters')
+      return
+    }
+
     if (!agreedToTerms) {
       alert('Please agree to the terms and conditions')
       return
     }
 
     setIsLoading(true)
-    
-    // Simulate registration process
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: formData.username.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone.trim(),
+          age: Number(formData.age),
+          password: formData.password
+        })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        alert(data.error || 'Registration failed')
+      } else {
+        window.location.href = '/login'
+      }
+    } catch (err) {
+      alert('Registration failed')
+    } finally {
       setIsLoading(false)
-      // Here you would typically handle user registration
-      console.log('Registration attempt:', formData)
-    }, 1500)
+    }
   }
 
-  const isFormValid = formData.firstName && formData.lastName && formData.email && formData.password && formData.confirmPassword && agreedToTerms
+  const isFormValid = formData.username && formData.phone && formData.age && formData.email && formData.password && formData.confirmPassword && agreedToTerms
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -80,50 +102,26 @@ export default function RegisterPage() {
           onSubmit={handleSubmit}
         >
           <div className="space-y-6">
-            {/* Name Fields */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-300 mb-2">
-                  First Name
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <User className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="firstName"
-                    name="firstName"
-                    type="text"
-                    autoComplete="given-name"
-                    required
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-700 rounded-lg bg-dark-200 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-neon-pink focus:border-transparent transition-all duration-300"
-                    placeholder="First name"
-                  />
+            {/* Username */}
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
+                Username
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-gray-400" />
                 </div>
-              </div>
-
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-300 mb-2">
-                  Last Name
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <User className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="lastName"
-                    name="lastName"
-                    type="text"
-                    autoComplete="family-name"
-                    required
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-700 rounded-lg bg-dark-200 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-neon-pink focus:border-transparent transition-all duration-300"
-                    placeholder="Last name"
-                  />
-                </div>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  autoComplete="username"
+                  required
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-700 rounded-lg bg-dark-200 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-neon-pink focus:border-transparent transition-all duration-300"
+                  placeholder="Choose a username"
+                />
               </div>
             </div>
 
@@ -134,7 +132,7 @@ export default function RegisterPage() {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
+                  <Mail className="h-5 h-5 text-gray-400" />
                 </div>
                 <input
                   id="email"
@@ -146,6 +144,47 @@ export default function RegisterPage() {
                   onChange={handleInputChange}
                   className="block w-full pl-10 pr-3 py-3 border border-gray-700 rounded-lg bg-dark-200 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-neon-pink focus:border-transparent transition-all duration-300"
                   placeholder="Enter your email"
+                />
+              </div>
+            </div>
+
+            {/* Phone Field */}
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-300 mb-2">
+                Phone Number
+              </label>
+              <div className="relative">
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  required
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className="block w-full pr-3 py-3 border border-gray-700 rounded-lg bg-dark-200 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-neon-pink focus:border-transparent transition-all duration-300"
+                  placeholder="Enter your phone number"
+                />
+              </div>
+            </div>
+
+            {/* Age Field */}
+            <div>
+              <label htmlFor="age" className="block text-sm font-medium text-gray-300 mb-2">
+                Age
+              </label>
+              <div className="relative">
+                <input
+                  id="age"
+                  name="age"
+                  type="number"
+                  min={5}
+                  max={120}
+                  required
+                  value={formData.age}
+                  onChange={handleInputChange}
+                  className="block w-full pr-3 py-3 border border-gray-700 rounded-lg bg-dark-200 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-neon-pink focus:border-transparent transition-all duration-300"
+                  placeholder="Enter your age"
                 />
               </div>
             </div>
